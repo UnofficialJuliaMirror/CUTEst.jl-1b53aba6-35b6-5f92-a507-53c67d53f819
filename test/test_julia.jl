@@ -6,8 +6,8 @@ function test_nlpinterface(nlp::CUTEstModel, comp_nlp::AbstractNLPModel)
                           hess(comp_nlp, x, obj_weight=obj_weight)'
   c(x) = cons(comp_nlp, x)
   J(x) = jac(comp_nlp, x)
-  W(x, y; obj_weight=1.0) = tril(hess(comp_nlp, x, y=y, obj_weight=obj_weight),-1) +
-                            hess(comp_nlp, x, y=y, obj_weight=obj_weight)'
+  W(x, y; obj_weight=1.0) = tril(hess(comp_nlp, x, y, obj_weight=obj_weight),-1) +
+                            hess(comp_nlp, x, y, obj_weight=obj_weight)'
 
   if nlp.meta.ncon > 0
     v = ones(nlp.meta.nvar)
@@ -17,7 +17,7 @@ function test_nlpinterface(nlp::CUTEstModel, comp_nlp::AbstractNLPModel)
   rtol = 1e-8
 
   @testset "Julia interface" begin
-    fx = obj(nlp, x0);
+    fx = obj(nlp, x0)
     @test isapprox(fx, f(x0), rtol=rtol)
 
     (fx, gx) = objgrad(nlp, x0)
@@ -52,7 +52,7 @@ function test_nlpinterface(nlp::CUTEstModel, comp_nlp::AbstractNLPModel)
       cons!(nlp, x0, cx)
       @test isapprox(cx, c(x0), rtol=rtol)
 
-      (jrow, jcol, jval) = jac_coord(nlp, x0)
+      jval = jac_coord(nlp, x0)
       Jx = sparse(jrow, jcol, jval, nlp.meta.ncon, nlp.meta.nvar)
       @test isapprox(Jx, J(x0), rtol=rtol)
 
@@ -66,18 +66,18 @@ function test_nlpinterface(nlp::CUTEstModel, comp_nlp::AbstractNLPModel)
       @test isapprox(Jtu, J(x0)'*u, rtol=rtol)
     end
 
-    v = rand(nlp.meta.nvar);
+    v = rand(nlp.meta.nvar)
     obj_weights = [0.0, 1.0, 3.141592]
     for obj_weight in obj_weights
-      Hx = hess(nlp, x0, obj_weight=obj_weight);
+      Hx = hess(nlp, x0, obj_weight=obj_weight)
       @test isapprox(Hx, tril(H(x0, obj_weight=obj_weight)), rtol=rtol)
       if nlp.meta.ncon > 0
-        Wx = hess(nlp, x0, y=ones(nlp.meta.ncon), obj_weight=obj_weight);
+        Wx = hess(nlp, x0, ones(nlp.meta.ncon), obj_weight=obj_weight)
         @test isapprox(Wx, tril(W(x0, ones(nlp.meta.ncon),
                                   obj_weight=obj_weight)), rtol=rtol)
       end
 
-      hv = hprod(nlp, x0, v, obj_weight=obj_weight);
+      hv = hprod(nlp, x0, v, obj_weight=obj_weight)
       @test isapprox(hv, H(x0, obj_weight=obj_weight)*v, rtol=rtol)
 
       fill!(hv, 0.0)
@@ -85,12 +85,12 @@ function test_nlpinterface(nlp::CUTEstModel, comp_nlp::AbstractNLPModel)
       @test isapprox(hv, H(x0, obj_weight=obj_weight)*v, rtol=rtol)
 
       if nlp.meta.ncon > 0
-        hv = hprod(nlp, x0, v, y=ones(nlp.meta.ncon), obj_weight=obj_weight);
+        hv = hprod(nlp, x0, ones(nlp.meta.ncon), v, obj_weight=obj_weight)
         @test isapprox(hv, W(x0, ones(nlp.meta.ncon),
                              obj_weight=obj_weight)*v, rtol=rtol)
 
         fill!(hv, 0.0)
-        hprod!(nlp, x0, v, hv, y=ones(nlp.meta.ncon), obj_weight=obj_weight);
+        hprod!(nlp, x0, ones(nlp.meta.ncon), v, hv, obj_weight=obj_weight)
         @test isapprox(hv, W(x0, ones(nlp.meta.ncon),
                              obj_weight=obj_weight)*v, rtol=rtol)
       end
@@ -118,13 +118,13 @@ function test_nlpinterface(nlp::CUTEstModel, comp_nlp::AbstractNLPModel)
 
     print("Julia interface stress test... ")
     for i = 1:10000
-      fx = obj(nlp, x0);
+      fx = obj(nlp, x0)
       (fx, gx) = objgrad(nlp, x0)
       gx = grad(nlp, x0)
       grad!(nlp, x0, gx)
-      Hx = hess(nlp, x0);
-      v = rand(nlp.meta.nvar);
-      hv = hprod(nlp, x0, v);
+      Hx = hess(nlp, x0)
+      v = rand(nlp.meta.nvar)
+      hv = hprod(nlp, x0, v)
       hprod!(nlp, x0, v, hv)
       if nlp.meta.ncon > 0
         (fx, cx) = objcons(nlp, x0)
@@ -133,14 +133,14 @@ function test_nlpinterface(nlp::CUTEstModel, comp_nlp::AbstractNLPModel)
         (cx, Jx) = consjac(nlp, x0)
         cx = cons(nlp, x0)
         cons!(nlp, x0, cx)
-        (jrow, jcol, jval) = jac_coord(nlp, x0)
+        jval = jac_coord(nlp, x0)
         Jx = sparse(jrow, jcol, jval, nlp.meta.ncon, nlp.meta.nvar)
         Jx = jac(nlp, x0)
         jv = jprod(nlp, x0, v)
         jtu = jtprod(nlp, x0, u)
-        Wx = hess(nlp, x0, y=ones(nlp.meta.ncon));
-        hv = hprod(nlp, x0, v, y=ones(nlp.meta.ncon));
-        hprod!(nlp, x0, v, hv, y=ones(nlp.meta.ncon));
+        Wx = hess(nlp, x0, ones(nlp.meta.ncon))
+        hv = hprod(nlp, x0, ones(nlp.meta.ncon), v)
+        hprod!(nlp, x0, ones(nlp.meta.ncon), v, hv)
       end
     end
     println("Passed")
